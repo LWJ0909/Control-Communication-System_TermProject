@@ -48,18 +48,8 @@ My ROS2 + Embedded development journal
 - Will version changes per ROS release for compatibility
 
 ---
-## 🗓️ May 3, 2025 – Daily Log
+## 📚 Daily Logs
 
-### 🎯 Goal  
-...
-
-### 🔨 What I Did  
-...
-
-### ⚠️ Issues & Notes  
-...
-
-### ✅ Outcome  
-...
-
+- [🗓️ May 2, 2025](logs/2025-05-02.md)
+- [🗓️ May 3, 2025](logs/2025-05-03.md)  
 
