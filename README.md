@@ -146,3 +146,20 @@ and verify mutual communication (e.g., SSH or VNC), since Ubuntu 22.04 is **not 
 - Enable VNC for GUI-less control (just in case)
 
 
+---
+
+## 🗓️ May 3, 2025 – Daily Log
+
+### 🎯 Goal  
+...
+
+### 🔨 What I Did  
+...
+
+### ⚠️ Issues & Notes  
+...
+
+### ✅ Outcome  
+...
+
+
