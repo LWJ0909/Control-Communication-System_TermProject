@@ -1,0 +1,138 @@
+import threading
+import time
+import socket
+import cv2
+import numpy as np
+from gpiozero import Button, DigitalOutputDevice, PWMOutputDevice
+from picamera2 import Picamera2
+
+# -------------------- Camera Class --------------------
+
+class MyPiCamera():
+    def __init__(self, width, height):
+        self.cap = Picamera2()
+        self.width = width
+        self.height = height
+        self.is_open = True
+
+        try:
+            self.config = self.cap.create_video_configuration(main={"format": "RGB888", "size": (width, height)})
+            self.cap.align_configuration(self.config)
+            self.cap.configure(self.config)
+            self.cap.start()
+        except Exception as e:
+            print("Camera init failed:", e)
+            self.is_open = False
+
+    def read(self):
+        if self.is_open:
+            return True, self.cap.capture_array()
+        else:
+            return False, np.zeros((self.height, self.width, 3), dtype=np.uint8)
+
+    def release(self):
+        if self.is_open:
+            self.cap.close()
+        self.is_open = False
+
+# -------------------- Motor Control --------------------
+
+SW1 = Button(5, pull_up=False)
+SW2 = Button(6, pull_up=False)
+SW3 = Button(13, pull_up=False)
+SW4 = Button(19, pull_up=False)
+
+PWMA = PWMOutputDevice(18)
+AIN1 = DigitalOutputDevice(22)
+AIN2 = DigitalOutputDevice(27)
+
+PWMB = PWMOutputDevice(23)
+BIN1 = DigitalOutputDevice(25)
+BIN2 = DigitalOutputDevice(24)
+
+def motor_go(speed): AIN1.off(); AIN2.on(); PWMA.value = speed; BIN1.off(); BIN2.on(); PWMB.value = speed
+def motor_back(speed): AIN1.on(); AIN2.off(); PWMA.value = speed; BIN1.on(); BIN2.off(); PWMB.value = speed
+def motor_left(speed): AIN1.on(); AIN2.off(); PWMA.value = speed; BIN1.off(); BIN2.on(); PWMB.value = speed
+def motor_right(speed): AIN1.off(); AIN2.on(); PWMA.value = speed; BIN1.on(); BIN2.off(); PWMB.value = speed
+def motor_stop(): AIN1.off(); AIN2.off(); PWMA.value = 0; BIN1.off(); BIN2.off(); PWMB.value = 0
+
+# -------------------- TCP Listener Thread --------------------
+
+def tcp_listener():
+    global current_action
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind(('0.0.0.0', 12345))
+    server_socket.listen(1)
+    print('Waiting for connection...')
+    conn, addr = server_socket.accept()
+    print(f"Connected by {addr}")
+    
+    try:
+        while True:
+            data = conn.recv(1024)
+            if not data:
+                break
+
+            message = data.decode().strip()
+            print(f"Received: {message}")
+
+            if message == "front":
+                if current_action == "front":
+                    motor_stop(); current_action = "stop"
+                else:
+                    motor_go(1.0); current_action = "front"
+
+            elif message == "back":
+                if current_action == "back":
+                    motor_stop(); current_action = "stop"
+                else:
+                    motor_back(0.5); current_action = "back"
+
+            elif message == "left":
+                if current_action == "left":
+                    motor_stop(); current_action = "stop"
+                else:
+                    motor_left(0.5); current_action = "left"
+
+            elif message == "right":
+                if current_action == "right":
+                    motor_stop(); current_action = "stop"
+                else:
+                    motor_right(0.5); current_action = "right"
+                    
+            else:
+                print("Unknown command.")
+                motor_stop()
+                current_action = "stop"
+
+            time.sleep(0.1)
+    finally:
+        motor_stop()
+        conn.close()
+        server_socket.close()
+
+# -------------------- Main Camera Display --------------------
+
+def camera_loop():
+    camera = MyPiCamera(640, 480)
+    while camera.is_open:
+        ret, img = camera.read()
+        img = cv2.flip(img, -1)
+        cv2.imshow("My Camera", img)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    camera.release()
+    cv2.destroyAllWindows()
+
+# -------------------- Main --------------------
+
+
+if __name__ == "__main__":
+    current_action = "stop"
+    tcp_thread = threading.Thread(target=tcp_listener, daemon=True)
+    tcp_thread.start()
+    
+    camera_loop()    
+    
+    
