@@ -1,0 +1,90 @@
+# [2025-05-03] Raspberry Pi 5 Ubuntu Boot Failure Log
+
+## Summary
+Today’s objective was to flash Ubuntu 24.04.2 onto a Raspberry Pi 5 using a Samsung EVO 128GB microSD card. Multiple flashing attempts were made via both Balena Etcher and Raspberry Pi Imager. Despite successful flashing messages, the Pi failed to boot repeatedly. After thorough debugging, the issue is likely related to hidden bad sectors on the SD card.
+
+<!-- 오늘 목표: 라즈베리파이에 우분투 설치. 여러 번 깔았지만 부팅 실패. SD카드 불량섹터가 원인으로 의심됨 -->
+
+---
+
+## Problems Observed
+- No HDMI display output on boot
+- Green ACT LED blinks 7 times repeatedly → indicates `kernel.img not found`
+- System boots into EEPROM recovery screen and then shuts down
+- SD card appears readable on PC (Windows), but Pi fails to boot any OS image
+- Etcher fails with "writer process ended unexpectedly"
+- Pi Imager completes flashing but system still fails to boot
+
+<!-- HDMI 출력 없음, 부팅 불가, Etcher 에러, Pi Imager는 완료되나 부팅은 실패 -->
+
+---
+
+## Troubleshooting Attempts
+
+### Hardware Checks
+- Confirmed HDMI 0 port usage (closest to USB-C)
+- Verified monitor input source manually
+- Swapped HDMI cables and power supply
+
+<!-- 하드웨어 문제 아님을 확인 (HDMI, 모니터 설정, 케이블 등) -->
+
+### Software & OS Attempts
+- Flashed Ubuntu Desktop 24.04.2 (preinstalled arm64 for RPi) via:
+  - **Etcher** (failed mid-process)
+  - **Pi Imager** (completed successfully)
+- Repeated full format using **SD Card Formatter**
+- Attempted boot after each re-flash → failed consistently
+
+<!-- 여러 번 포맷과 OS 재설치 시도. 결과는 계속 실패 -->
+
+### SD Card Behavior
+- Green LED shows boot activity but stops abruptly
+- File system readable on PC but OS boot consistently fails
+- Re-flashing same image leads to repeated failure
+
+<!-- PC에서는 정상처럼 보여도, 실제로 OS 부팅 중 멈추거나 실패 -->
+
+---
+
+## Key Findings
+
+- **Bad sector likelihood is high**: Ubuntu image likely placed its kernel or boot files on corrupted regions of the SD card
+- **PC reads SD card fine** because file access on Windows doesn't reach bad sectors
+- **Pi requires full and consistent access to all image blocks**, including bootloader, kernel, and rootfs — even one unreadable block breaks boot
+- **Formatting doesn't repair bad sectors** — physical damage remains unless mapped out (which Pi bootloader doesn't do)
+
+<!-- 문제 핵심: SD카드에 불량 블록이 있고, PC에서는 몰라도 Pi에서는 부팅 중 반드시 문제 발생 -->
+
+---
+
+## Conclusion
+The Samsung EVO 128GB card used today is no longer reliable for OS-level flashing and Pi usage due to suspected bad blocks. While general file access works, it cannot be trusted for full-disk raw image flashing and boot processes.
+
+<!-- 이 SD카드는 OS용으로 더 이상 안전하지 않음 -->
+
+---
+
+## Next Steps
+
+### Hardware:
+- Replace SD card with:
+  - **SanDisk High Endurance 32GB A1 (U1)** → proven stable in Pi environments
+  - Alternative: **SanDisk Ultra A1 32GB** or **Samsung PRO Endurance 32GB**
+
+<!-- 새 SD카드 구입 추천: 내구성 있고 Pi에서 검증된 모델 -->
+
+### Software:
+- Use **Raspberry Pi Imager** (not Etcher) for better reliability
+- Initially flash **Raspberry Pi OS (32-bit)** to confirm hardware and boot path
+- Then re-attempt Ubuntu Desktop or Server once validated
+
+<!-- 라즈비안으로 먼저 테스트 후 우분투로 넘어가는 전략 -->
+
+---
+
+## Lessons Learned
+- SD card read/write health directly impacts bootability — PC readability ≠ Pi usability
+- Ubuntu images are large and sensitive to flash integrity — even one bad block causes total failure
+- Pre-tested A1/A2 class SD cards are essential for embedded Linux work
+
+<!-- SD카드는 겉보기 정상이 아니라, 부팅 시 검증되는 것이 중요. 좋은 등급의 카드가 필수 -->
