@@ -52,4 +52,5 @@ My ROS2 + Embedded development journal
 
 - [🗓️ May 2, 2025](logs/2025-05-02.md)
 - [🗓️ May 3, 2025](logs/2025-05-03.md)  
+- [🗓️ May 4, 2025](logs/2025-05-04.md)  
 
